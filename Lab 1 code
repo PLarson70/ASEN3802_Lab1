@@ -76,3 +76,15 @@ grid on;
 title('Deflection v(x) vs. Spanwise Position of a Off-centered Load');
 xlabel('Spanwise Position x (m)');
 ylabel('Deflection v(x) (m)');
+
+%Task 4 - Equivalent Beam Model with 2 Symmetric Loads
+
+v2_x = 2.*v1_x;
+
+figure;
+hold on;
+plot(x, v2_x, 'b', 'LineWidth', 1.5);
+grid on;
+title('Deflection v(x) vs. Spanwise Position of a Symmetrical Load');
+xlabel('Spanwise Position x (m)');
+ylabel('Deflection v(x) (m)');
