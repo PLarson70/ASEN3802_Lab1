@@ -1,0 +1,73 @@
+%% ASEN 3802 - LAB 1%%
+
+clc;
+close all;
+clear;
+
+%% Beam loading data
+%center loading of beam
+data_center = load("Case 1 - load in center");
+data_b1 = importdata("Case_b1.txt");
+data_l1 = load("Case_l1");
+
+%Loading Case (lbs)	F0 (lbf)	F1 (lbf)	F2 (lbf)	F3D (lbf)	LVDT (in)
+
+%% Updating between F3D(lbf)
+%updated F3D to account for preloaded member
+% updataed_data_center = F3D_adjustment(data_center);
+% updated_data_b1 = F3D_adjustment(data_b1);
+% updated_data_l1 = F3D_adjustment(data_l1);
+
+%% Part 1: Equivalent Beam Calculation
+
+%Task 1 - MOI of Beam
+t=1.5875;
+d=250/2;
+d_out= 9.525; %[mm]
+d_in = d_out  - 2*t; %[mm]
+
+A_out = pi*(d_out/2)^2; %[mm^2]
+A_in = pi*(d_in/2)^2;  %[mm^2]
+
+A_truss = A_out - A_in; %[mm^2]
+
+Ic = (pi/64)*((d_out)^4-(d_in)^4); %[mm^4]
+
+I_truss = ((Ic + A_truss*d^2)*4)*(1*10^-12); %[m^4]
+
+%Task 2 - Equivalent Beam Model w/Centered Load
+E = 69.5*10^9; %[N/m^2]
+P = 222.4; % [N]
+L = 4; %[m]
+x= 0:0.0001:L;
+v_x = (1/E*I_truss)*(((P.*(L-x).^3)/12)-((P.*L.^2*(L-x))./16));
+
+
+% Deflection Plot
+figure;
+plot(x, v_x, 'b', 'LineWidth', 1.5);
+grid on;
+title('Deflection v(x) vs. Spanwise Position of a Centered Load');
+xlabel('Spanwise Position x (m)');
+ylabel('Deflection v(x) (m)');
+
+%Task 3 - Equivalent Beam Model with Off-centered Load
+%location of the load
+a = L/2;
+b = L-a;
+for i = 1:length(x)
+    if x(i)<=a
+        v1_x(i) = (1./E.*I_truss).*(((P.*x(i).^3*b)./(6.*L))-(((P.*b.*(L.^2-b.^2))./(6.*L)).*x(i)));
+    else
+        v1_x(i) = (1/E*I_truss).*(((P.*x(i).^3*b)./(6*L))-((P.*(x(i)-a).^3)./6)-(((P.*b.*(L.^2-b.^2))./(6*L)).*x(i)));
+    end
+end
+
+% Deflection Plot
+figure;
+hold on;
+plot(x, v1_x, 'b', 'LineWidth', 1.5);
+grid on;
+title('Deflection v(x) vs. Spanwise Position of a Off-centered Load');
+xlabel('Spanwise Position x (m)');
+ylabel('Deflection v(x) (m)');
