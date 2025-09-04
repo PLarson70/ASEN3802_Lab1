@@ -40,8 +40,13 @@ E = 69.5*10^9; %[N/m^2]
 P = 222.4; % [N]
 L = 4; %[m]
 x= 0:0.0001:L;
-v_x = (1/E*I_truss)*(((P.*(L-x).^3)/12)-((P.*L.^2*(L-x))./16));
-
+for i = 1:length(x)
+    if x(i)<=L/2
+        v_x(i) = (1./E.*I_truss).*(((P.*x(i).^3)./12)-((P.*L.^2.*x(i))./16));
+    else
+        v_x(i) = (1./E.*I_truss).*(((P.*(L-x(i)).^3)./12)-((P.*L.^2*(L-x(i)))./16));
+    end
+end
 
 % Deflection Plot
 figure;
