@@ -1,0 +1,39 @@
+function [y_fit,slope,R_squared, CI, residuals] = lin_regress(x,y)
+%Calculating the linear regression (line of best fit), slope of linear regression, coefficient of determination (R^2), confidence intervals of the slope, and residuals between the data and y_fit
+
+%Linear Regression
+p= polyfit(x, y, 1);
+y_fit = polyval(p, x);
+slope = p(1);
+
+%R^2
+y_mean = mean(y);
+
+SS_tot = sum((y-y_mean).^2);
+
+SS_res = sum((y-y_fit).^2);
+
+R_squared = 1-(SS_res / SS_tot);
+
+%uncertainity in the slope
+n = length(x);
+
+%residuals and standard error
+residuals = y-y_fit;
+SSE = sum(residuals.^2);
+s = sqrt(SSE / (n-2)); %standard error of estimate
+
+x_mean = mean(x);
+Sxx = sum((x-x_mean).^2);
+
+%Standard errors of slope
+SE_slope = s/sqrt(Sxx);
+
+%t-value for 95% CI and n-2 degrees of freedom
+alpha = 0.05;
+t_val = tinv(1-alpha/2, n-2);
+
+%Confidence Intervals
+CI = [p(1) - t_val *SE_slope, p(1) + t_val*SE_slope];
+
+end
