@@ -1,0 +1,282 @@
+%% ASEN 3802 - LAB 1%%
+
+clc;
+close all;
+clear;
+
+%% Beam loading data
+%center loading of beam
+data_center = load("Case 1 - load in center");
+data_b1 = readmatrix("Case_b1.txt");
+data_l1 = load("Case_l1");
+
+%Loading Case (lbs)	F0 (lbf)	F1 (lbf)	F2 (lbf)	F3D (lbf)	LVDT (in)
+
+%% Updating between F3D(lbf)
+%updated F3D to account for preloaded member
+
+F3D_c = data_center(:,5)+67;
+data_center(:,5) = F3D_c;
+F3D_b = data_b1(:,5)+67;
+data_b1(:,5) = F3D_b;
+F3D_l = data_l1(:,5)+67;
+data_l1(:,5) = F3D_l;
+
+%% Part 1: Equivalent Beam Calculation
+
+%Task 1 - MOI of Beam
+t=1.5875;
+d=250/2;
+d_out= 9.525; %[mm]
+d_in = d_out  - 2*t; %[mm]
+
+A_out = pi*(d_out/2)^2; %[mm^2]
+A_in = pi*(d_in/2)^2;  %[mm^2]
+
+A_truss = A_out - A_in; %[mm^2]
+
+Ic = (pi/64)*((d_out)^4-(d_in)^4); %[mm^4]
+
+I_truss = ((Ic + A_truss*d^2)*4)*(1*10^-12); %[m^4]
+
+%Task 2 - Equivalent Beam Model w/Centered Load
+E = 69.5*10^9; %[N/m^2]
+P = 222.4; % [N]
+L = 4; %[m]
+x= 0:0.0001:L;
+for i = 1:length(x)
+    if x(i)<=L/2
+        v_x(i) = (1./E.*I_truss).*(((P.*x(i).^3)./12)-((P.*L.^2.*x(i))./16));
+    else
+        v_x(i) = (1./E.*I_truss).*(((P.*(L-x(i)).^3)./12)-((P.*L.^2*(L-x(i)))./16));
+    end
+end
+
+% Deflection Plot
+figure;
+plot(x, v_x, 'b', 'LineWidth', 1.5);
+grid on;
+title('Deflection v(x) vs. Spanwise Position of a Centered Load');
+xlabel('Spanwise Position x (m)');
+ylabel('Deflection v(x) (m)');
+
+%Task 3 - Equivalent Beam Model with Off-centered Load
+%location of the load
+a = L/2;
+b = L-a;
+for i = 1:length(x)
+    if x(i)<=a
+        v1_x(i) = (1./E.*I_truss).*(((P.*x(i).^3*b)./(6.*L))-(((P.*b.*(L.^2-b.^2))./(6.*L)).*x(i)));
+    else
+        v1_x(i) = (1/E*I_truss).*(((P.*x(i).^3*b)./(6*L))-((P.*(x(i)-a).^3)./6)-(((P.*b.*(L.^2-b.^2))./(6*L)).*x(i)));
+    end
+end
+
+% Deflection Plot
+figure;
+hold on;
+plot(x, v1_x, 'b', 'LineWidth', 1.5);
+grid on;
+title('Deflection v(x) vs. Spanwise Position of a Off-centered Load');
+xlabel('Spanwise Position x (m)');
+ylabel('Deflection v(x) (m)');
+
+%Task 4 - Equivalent Beam Model with 2 Symmetric Loads
+
+v2_x = 2.*v1_x;
+
+figure;
+hold on;
+plot(x, v2_x, 'b', 'LineWidth', 1.5);
+grid on;
+title('Deflection v(x) vs. Spanwise Position of a Symmetrical Load');
+xlabel('Spanwise Position x (m)');
+ylabel('Deflection v(x) (m)');
+
+%% Part 2
+%% Linear Regression and Uncertainity
+% Case 1 (center) F0, F1, F2, F3, LVDT 
+    %F0
+[y_fit1_F0,slope1_F0,R_squared1_F0, SE1_F0,CIintercept1_F0, residuals1_F0] = lin_regress(data_center(:,1),data_center(:,2));
+    %F1
+[y_fit1_F1,slope1_F1,R_squared1_F1, SE1_F1,CIintercept1_F1, residuals1_F1] = lin_regress(data_center(:,1),data_center(:,3));
+    %F2
+[y_fit1_F2,slope1_F2,R_squared1_F2, SE1_F2,CIintercept1_F2, residuals1_F2] = lin_regress(data_center(:,1),data_center(:,4));
+    %F3D
+[y_fit1_F3D,slope1_F3D,R_squared1_F3D, SE1_F3D,CIintercept1_F3D, residuals1_F3D] = lin_regress(data_center(:,1),data_center(:,5));
+    %LVDT
+[y_fit1_LVDT,slope1_LVDT,R_squared1_LVDT, SE1_LVDT,CIintercept1_LVDT, residuals1_LVDT] = lin_regress(data_center(:,1),data_center(:,6));
+
+% Case 2 (off-center) F0, F1, F2, F3, LVDT 
+    %F0
+[y_fit2_F0,slope2_F0,R_squared2_F0, SE2_F0,CIintercept2_F0, residuals2_F0] = lin_regress(data_b1(:,1),data_b1(:,2));
+    %F1
+[y_fit2_F1,slope2_F1,R_squared2_F1, SE2_F1,CIintercept2_F1, residuals2_F1] = lin_regress(data_b1(:,1),data_b1(:,3));
+    %F2
+[y_fit2_F2,slope2_F2,R_squared2_F2, SE2_F2,CIintercept2_F2, residuals2_F2] = lin_regress(data_b1(:,1),data_b1(:,4));
+    %F3D
+[y_fit2_F3D,slope2_F3D,R_squared2_F3D, SE2_F3D, CIintercept2_F3D, residuals2_F3D] = lin_regress(data_b1(:,1),data_b1(:,5));
+    %LVDT
+[y_fit2_LVDT,slope2_LVDT,R_squared2_LVDT, SE2_LVDT,CIintercept2_LVDT, residuals2_LVDT] = lin_regress(data_b1(:,1),data_b1(:,6));
+
+% Case 3 (symmetric) F0, F1, F2, F3, LVDT 
+    %F0
+[y_fit3_F0,slope3_F0,R_squared3_F0, SE3_F0,CIintercept3_F0, residuals3_F0] = lin_regress(data_l1(:,1),data_l1(:,2));
+    %F1
+[y_fit3_F1,slope3_F1,R_squared3_F1, SE3_F1,CIintercept3_F1, residuals3_F1] = lin_regress(data_l1(:,1),data_l1(:,3));
+    %F2
+[y_fit3_F2,slope3_F2,R_squared3_F2, SE3_F2,CIintercept3_F2, residuals3_F2] = lin_regress(data_l1(:,1),data_l1(:,4));
+    %F3D
+[y_fit3_F3D,slope3_F3D,R_squared3_F3D, SE3_F3D,CIintercept3_F3D, residuals3_F3D] = lin_regress(data_l1(:,1),data_l1(:,5));
+    %LVDT
+[y_fit3_LVDT,slope3_LVDT,R_squared3_LVDT, SE3_LVDT,CIintercept3_LVDT, residuals3_LVDT] = lin_regress(data_l1(:,1),data_l1(:,6));
+
+y_fit1 = [y_fit1_F0 y_fit1_F1 y_fit1_F2 y_fit1_F3D y_fit1_LVDT];
+y_fit2 = [y_fit2_F0 y_fit2_F1 y_fit2_F2 y_fit2_F3D y_fit2_LVDT];
+y_fit3 = [y_fit3_F0 y_fit3_F1 y_fit3_F2 y_fit3_F3D y_fit3_LVDT];
+
+%% Reaction Forces: (F0, F1, F2) - Plots
+
+% All cases: plotting reaction forces, internal, and displacments
+figure;
+hold on;
+for i=1:5
+    subplot(3,2,i);
+    hold on;
+    scatter(data_center(:,1),data_center(:,i+1), 'b', 'LineWidth', 1.5);
+    plot(data_center(:,1),data_center(:,i+1),'b');
+    scatter(data_b1(:,1),data_b1(:,i+1), 'g', 'LineWidth', 1.5);
+    plot(data_b1(:,1),data_b1(:,i+1),'g');
+    scatter(data_l1(:,1),data_l1(:,i+1), 'r', 'LineWidth', 1.5);
+    plot(data_l1(:,1),data_l1(:,i+1),'r');
+    grid on;
+    if i == 1
+        title('All Cases: F0');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    elseif i==2
+        title('All Cases: F1');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    elseif i==3
+        title('All Cases: F2');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    elseif i == 4
+        title('All Cases: F3D');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    else
+        title('All Cases: LVDT');
+        xlabel('Load Applied [lbs]');
+        ylabel('Displacement [in]');
+    end
+
+end
+hL = legend({'Case 1: Center Loading', '', 'Case 2: Off-Center Loading','','Case 3: Symmetric Loading'}, 'Position',[0.6,0.13,0.2,0.2], 'Orientation','vertical');
+set(hL, 'Box', 'off');
+hold off;
+
+%All cases including line of regression
+figure;
+hold on;
+for i=1:5
+    subplot(3,2,i);
+    hold on;
+    scatter(data_center(:,1),data_center(:,i+1), 'b', 'LineWidth', 1.5);
+    plot(data_center(:,1),y_fit1(:,i),'b--');
+    scatter(data_b1(:,1),data_b1(:,i+1), 'g', 'LineWidth', 1.5);
+    plot(data_b1(:,1),y_fit2(:,i),'g--');
+    scatter(data_l1(:,1),data_l1(:,i+1), 'r', 'LineWidth', 1.5);
+    plot(data_l1(:,1),y_fit3(:,i),'r--');
+    grid on;
+    if i == 1
+        title('All Cases: F0');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    elseif i==2
+        title('All Cases: F1');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    elseif i==3
+        title('All Cases: F2');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    elseif i == 4
+        title('All Cases: F3D');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    else
+        title('All Cases: LVDT');
+        xlabel('Load Applied [lbs]');
+        ylabel('Displacement [in]');
+    end
+
+end
+
+hL = legend({'Case 1: Center Loading', 'C1: Line of Regression', 'Case 2: Off-Center Loading','C2: Line of Regression','Case 3: Symmetric Loading','C3: Line of Regression'}, 'Position',[0.6,0.1,0.2,0.2], 'Orientation','vertical');
+set(hL, 'Box', 'off');
+hold off;
+
+% All cases with linear regression and uncertainity
+for i = 1:5
+    
+    figure()
+    hold on;
+    scatter(data_center(:,1),data_center(:,i+1), 'b', 'LineWidth', 1);
+    plot(data_center(:,1),y_fit1(:,i),'b','LineWidth',1.5);
+    scatter(data_b1(:,1),data_b1(:,i+1), 'g', 'LineWidth', 1);
+    plot(data_b1(:,1),y_fit2(:,i),'g','LineWidth',1.5);
+    scatter(data_l1(:,1),data_l1(:,i+1), 'r', 'LineWidth', 1);
+    plot(data_l1(:,1),y_fit3(:,i),'r','LineWidth',1.5);
+    grid on;
+    if i == 1
+        plot(data_center(:,1),y_fit1(:,i)+2*SE1_F0, 'b--',data_center(:,1),y_fit1(:,i)-2*SE1_F0,'b--');
+        plot(data_b1(:,1),y_fit2(:,i)+2*SE2_F0, 'g--',data_b1(:,1),y_fit2(:,1)-2*SE2_F0,'g--');
+        plot(data_l1(:,1),y_fit3(:,i)+2*SE3_F0, 'r--',data_l1(:,1),y_fit3(:,1)-2*SE3_F0,'r--');
+        legend('Case 1: Center Loading', 'C1: Line of Regression', 'Case 2: Off-Center Loading','C2: Line of Regression','Case 3: Symmetric Loading','C3: Line of Regression', ...
+            'C1: Uncertainity','','C2: Uncertainity','','C3: Uncertainity','Location','best');
+        title('All Cases: F0');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    elseif i==2
+        plot(data_center(:,1),y_fit1(:,i)+2*SE1_F1, 'b--',data_center(:,1),y_fit1(:,i)-2*SE1_F1,'b--');
+        plot(data_b1(:,1),y_fit2(:,i)+2*SE2_F1, 'g--',data_b1(:,1),y_fit2(:,i)-2*SE2_F1,'g--');
+        plot(data_l1(:,1),y_fit3(:,i)+2*SE3_F1, 'r--',data_l1(:,1),y_fit3(:,i)-2*SE3_F1,'r--');
+        legend('Case 1: Center Loading', 'C1: Line of Regression', 'Case 2: Off-Center Loading','C2: Line of Regression','Case 3: Symmetric Loading','C3: Line of Regression', ...
+            'C1: Uncertainity','','C2: Uncertainity','','C3: Uncertainity','Location','best');
+        title('All Cases: F1');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    elseif i==3
+        plot(data_center(:,1),y_fit1(:,i)+2*SE1_F2, 'b--',data_center(:,1),y_fit1(:,i)-2*SE1_F2,'b--');
+        plot(data_b1(:,1),y_fit2(:,i)+2*SE2_F2, 'g--',data_b1(:,1),y_fit2(:,i)-2*SE2_F2,'g--');
+        plot(data_l1(:,1),y_fit3(:,i)+2*SE3_F2, 'r--',data_l1(:,1),y_fit3(:,i)-2*SE3_F2,'r--');
+        legend('Case 1: Center Loading', 'C1: Line of Regression', 'Case 2: Off-Center Loading','C2: Line of Regression','Case 3: Symmetric Loading','C3: Line of Regression', ...
+            'C1: Uncertainity','','C2: Uncertainity','','C3: Uncertainity','Location','best');
+        title('All Cases: F2');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    elseif i == 4
+        plot(data_center(:,1),y_fit1(:,i)+2*SE1_F3D, 'b--',data_center(:,1),y_fit1(:,i)-2*SE1_F3D,'b--');
+        plot(data_b1(:,1),y_fit2(:,i)+2*SE2_F3D, 'g--',data_b1(:,1),y_fit2(:,i)-2*SE2_F3D,'g--');
+        plot(data_l1(:,1),y_fit3(:,i)+2*SE3_F3D, 'r--',data_l1(:,1),y_fit3(:,i)-2*SE3_F3D,'r--');
+        legend('Case 1: Center Loading', 'C1: Line of Regression', 'Case 2: Off-Center Loading','C2: Line of Regression','Case 3: Symmetric Loading','C3: Line of Regression', ...
+            'C1: Uncertainity','','C2: Uncertainity','','C3: Uncertainity','Location','best');
+        title('All Cases: F3D');
+        xlabel('Load Applied [lbs]');
+        ylabel('Reaction Forces [lbf]');
+    else
+        plot(data_center(:,1),y_fit1(:,i)+2*SE1_LVDT, 'b--',data_center(:,1),y_fit1(:,i)-2*SE1_LVDT,'b--');
+        plot(data_b1(:,1),y_fit2(:,i)+2*SE2_LVDT, 'g--',data_b1(:,1),y_fit2(:,i)-2*SE2_LVDT,'g--');
+        plot(data_l1(:,1),y_fit3(:,i)+2*SE3_LVDT, 'r--',data_l1(:,1),y_fit3(:,i)-2*SE3_LVDT,'r--');
+        legend('Case 1: Center Loading', 'C1: Line of Regression', 'Case 2: Off-Center Loading','C2: Line of Regression','Case 3: Symmetric Loading','C3: Line of Regression', ...
+            'C1: Uncertainity','','C2: Uncertainity','','C3: Uncertainity','Location','best');
+        title('All Cases: LVDT');
+        xlabel('Load Applied [lbs]');
+        ylabel('Displacement [in]');
+    end
+
+end
+
+
