@@ -1,3 +1,5 @@
+clear
+close all
 %% Givens
 data = readmatrix('Case_b1.txt');
 L = 4; %length of the beam in m
@@ -32,7 +34,7 @@ Lcheck = a+b0;
 
 b = 4-a;
 
-midspanDefmodel = @(b) (1./(E.*I)) .* ((P.*L^2.*b)./48 + (P.*(b-a))./48 + (P.*b.*(L^2-b^2))./48); %m
+midspanDefmodel = @(b) (1./(E.*I)) .* (-(P.*L^2.*b)./48 + (P.*(b-a))./48 + (P.*b.*(L^2-b^2))./12); %m
 midspanModelStress = @(a) (2.526*10^4).*P.*a; %
 modelStress = midspanModelStress(a);
 midspanModelInternalForce = modelStress .* A; %N
